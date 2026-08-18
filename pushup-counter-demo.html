@@ -8,10 +8,23 @@
   }
   *{box-sizing:border-box}
   .wrap{
-    background:var(--ink); color:var(--text); padding:16px; border-radius:14px;
+    background:var(--ink); color:var(--text); padding:14px;
     font-family:-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
     font-size:14px; line-height:1.6;
   }
+  #app{ position:fixed; inset:0; z-index:9 }
+  #app .stage{ position:absolute; inset:0; aspect-ratio:auto; border:0; border-radius:0 }
+  .hud{
+    position:absolute; left:0; right:0; bottom:0; padding:8px 10px 10px;
+    max-height:62dvh; overflow:auto;
+    background:linear-gradient(to top, rgba(14,17,22,.96) 60%, rgba(14,17,22,0));
+  }
+  .hud .card, .hud canvas.trace, .hud label{ background:rgba(22,27,34,.85) }
+  .hud.collapsed .trace, .hud.collapsed .gates, .hud.collapsed .foot{ display:none }
+  #toggle{ position:absolute; top:10px; right:10px; z-index:11;
+           background:rgba(22,27,34,.85); color:var(--text);
+           border:1px solid var(--line); border-radius:8px; padding:8px 12px;
+           font-size:13px; cursor:pointer }
   .status{
     background:var(--panel); border:1px solid var(--line); border-radius:10px;
     padding:10px 12px; margin-bottom:12px; font-size:13px; color:var(--dim);
@@ -61,6 +74,8 @@
       <div class="warn" id="warn" style="display:none">全身が入っていません</div>
     </div>
 
+    <button id="toggle">数値</button>
+    <div class="hud" id="hud">
     <div class="counts">
       <div class="card now"><div class="lbl">現行方式（門番なし）</div><div class="num" id="cNow">0</div><div class="sub" id="sNow">—</div></div>
       <div class="card new"><div class="lbl">改善案（門番あり）</div><div class="num" id="cNew">0</div><div class="sub" id="sNew">—</div></div>
@@ -73,6 +88,7 @@
     <div class="foot">
       <button class="min" id="reset">数字をリセット</button>
       <span class="g-val" id="fps"></span>
+    </div>
     </div>
   </div>
 </div>
@@ -222,7 +238,8 @@ $("start").onclick = async () => {
     return;
   }
   say("動いています。カメラの前で腕立ての動きをしたり、わざと体を揺らしたりして、2つの数字を見比べてください。");
-  $("startbox").style.display="none"; $("app").style.display="block";
+  $("startbox").style.display="none"; statusEl.style.display="none"; $("app").style.display="block";
+  $("toggle").onclick = () => $("hud").classList.toggle("collapsed");
   requestAnimationFrame(loop);
 };
 
