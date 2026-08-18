@@ -1,65 +1,35 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <style>
-  :root{
-    --ink:#0e1116; --line:rgba(255,255,255,.14); --text:#e6edf3; --dim:#b6c2cf;
-    --now:#f0a72f; --new:#3fc8c0; --bad:#ff8a82;
-    --glass:rgba(14,17,22,.42);
-  }
-  *{box-sizing:border-box}
-  body{margin:0}
+  :root{ --ink:#0e1116; --line:rgba(255,255,255,.14); --text:#e6edf3; --dim:#b6c2cf;
+         --new:#3fc8c0; --bad:#ff8a82; --glass:rgba(14,17,22,.42) }
+  *{box-sizing:border-box} body{margin:0}
   .wrap{ background:var(--ink); color:var(--text); padding:14px;
     font-family:-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
     font-size:14px; line-height:1.6 }
-  .status{ background:rgba(255,255,255,.06); border:1px solid var(--line);
-    border-radius:10px; padding:10px 12px; margin-bottom:12px; font-size:13px; color:var(--dim) }
+  .status{ background:rgba(255,255,255,.06); border:1px solid var(--line); border-radius:10px;
+    padding:10px 12px; margin-bottom:12px; font-size:13px; color:var(--dim) }
   .status.err{ border-color:var(--bad); color:#ffb3ae }
   button.go{ background:var(--new); color:#06201f; border:0; border-radius:8px;
-    padding:10px 18px; font-size:15px; font-weight:700; cursor:pointer }
+    padding:10px 18px; font-size:15px; font-weight:700 }
   #app{ position:fixed; inset:0; z-index:9; display:none }
   .stage{ position:absolute; inset:0; background:#000; overflow:hidden }
   video,canvas.ov{ position:absolute; inset:0; width:100%; height:100%;
     object-fit:cover; transform:scaleX(-1) }
   .warn{ position:absolute; left:0; right:0; top:0; background:rgba(229,83,75,.75);
     color:#fff; font-size:13px; padding:5px 10px; text-align:center }
-  #toggle{ position:absolute; top:10px; right:10px; z-index:12; background:var(--glass);
-    -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
-    color:var(--text); border:1px solid var(--line); border-radius:8px;
-    padding:8px 12px; font-size:13px }
-
   .hud{ position:absolute; left:0; right:0; bottom:0; z-index:11;
-    max-height:68dvh; overflow:auto; padding:10px 10px calc(10px + env(safe-area-inset-bottom));
+    padding:12px 12px calc(12px + env(safe-area-inset-bottom));
     background:var(--glass); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
-    border-top:1px solid var(--line) }
-  .hud.collapsed .foldable{ display:none }
-
-  .live{ display:flex; gap:10px; flex-wrap:wrap; font:600 12px ui-monospace,Menlo,monospace;
-    color:var(--dim); margin-bottom:8px }
-  .live b{ color:#fff; font-weight:700 }
-  .live .ng{ color:var(--bad) } .live .ok{ color:var(--new) }
-
-  .rec{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px }
-  .rec .truth{ display:flex; align-items:center; gap:6px;
-    background:rgba(255,255,255,.08); border:1px solid var(--line); border-radius:8px; padding:4px 6px }
-  .rec .truth button{ width:30px; height:30px; border-radius:6px; border:1px solid var(--line);
-    background:transparent; color:var(--text); font-size:17px; line-height:1 }
-  .rec .truth input{ width:44px; background:transparent; border:0; color:#fff; text-align:center;
-    font:700 19px ui-monospace,monospace }
-  #recBtn{ flex:1; min-width:120px; border:0; border-radius:8px; padding:10px 14px;
-    font-size:15px; font-weight:700; background:var(--new); color:#06201f }
-  #recBtn.on{ background:#e5534b; color:#fff }
-  .meta{ font-size:12px; color:var(--dim); display:flex; gap:10px; align-items:center }
-  .meta button{ background:transparent; color:var(--dim); border:1px solid var(--line);
-    border-radius:7px; padding:5px 10px; font-size:12px }
-
-  table{ width:100%; border-collapse:collapse; font-size:12px; margin-top:8px }
-  th,td{ padding:6px 4px; text-align:right; border-bottom:1px solid rgba(255,255,255,.08) }
-  th{ color:var(--dim); font-weight:600; font-size:11px }
-  td.g{ text-align:left; font:600 14px ui-monospace,monospace; letter-spacing:2px }
-  tr.best td{ background:rgba(63,200,192,.14) }
-  tr.base td{ color:var(--now) }
-  .on{ color:var(--new) } .off{ color:rgba(255,255,255,.22) }
-  .legend{ font-size:11px; color:var(--dim); margin-top:6px }
+    border-top:1px solid var(--line); display:flex; align-items:center; gap:12px; flex-wrap:wrap }
+  .num{ font:700 64px/1 ui-monospace,Menlo,monospace; color:var(--new) }
+  .num small{ font:600 13px/1 -apple-system,sans-serif; color:var(--dim); display:block; margin-bottom:4px }
+  .side{ margin-left:auto; display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end }
+  .side button{ background:rgba(255,255,255,.08); color:var(--text); border:1px solid var(--line);
+    border-radius:8px; padding:9px 13px; font-size:13px }
+  .live{ width:100%; font:600 12px ui-monospace,monospace; color:var(--dim);
+    display:flex; gap:12px; flex-wrap:wrap }
+  .live .ok{ color:var(--new) } .live .ng{ color:var(--bad) }
 </style>
 
 <div class="wrap" id="wrap">
@@ -71,66 +41,30 @@
   <div class="stage">
     <video id="vid" playsinline muted></video>
     <canvas class="ov" id="ov"></canvas>
-    <div class="warn" id="warn" style="display:none">上半身が入っていません</div>
+    <div class="warn" id="warn" style="display:none">腕立ての構えになっていません</div>
   </div>
-  <button id="toggle">数値</button>
-
-  <div class="hud" id="hud">
+  <div class="hud">
+    <div class="num"><small>回数</small><span id="count">0</span></div>
+    <div class="side">
+      <button id="reset">リセット</button>
+      <button id="copy">記録をコピー</button>
+    </div>
     <div class="live" id="live"></div>
-
-    <div class="rec">
-      <div class="truth">
-        <button id="minus">−</button>
-        <input id="truth" type="number" inputmode="numeric" value="6">
-        <button id="plus">＋</button>
-      </div>
-      <button id="recBtn">計測開始</button>
-    </div>
-
-    <div class="foldable">
-      <div class="meta">
-        <span id="sessions">セッション 0 件</span>
-        <button id="clear">全消去</button>
-        <button id="copy">結果をコピー</button>
-        <button id="dl">記録をコピー</button>
-      </div>
-      <canvas id="post" style="width:100%;height:120px;display:block;margin-top:8px;
-        background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:8px"></canvas>
-      <div class="legend" id="postnote"></div>
-      <table id="rank"></table>
-      <div class="legend">門番の並び：振幅・平滑・構え・距離・同期／スコア＝数え漏らし×3＋水増し×1（小さいほど良い）</div>
-    </div>
   </div>
 </div>
 
 <script type="module">
 import { PoseLandmarker, FilesetResolver }
   from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14";
-
 const $ = id => document.getElementById(id);
 const statusEl = $("status");
-const say = (t, err) => { statusEl.textContent = t; statusEl.classList.toggle("err", !!err); };
+const say = (t,e) => { statusEl.textContent=t; statusEl.classList.toggle("err",!!e); };
 
-/* ===== 定数（依頼書の実装をそのまま） ===== */
+/* ===== 定数 ===== */
 const WINDOW_MS=5000, ENTER=0.7, EXIT=0.3, MIN_HALF=250, MAX_HALF=5000,
       RESET_MS=1000, MAX_AMP_TORSO=1.5, TORSO_HALF_LIFE=3000;
-/* 門番のしきい値 */
-const AMP_STRICT=0.15, AMP_BASE=0.08, POSTURE_MAX=1.35, SIZE_MIN=0.12, SYNC_MIN=0.6;
-
-/* ===== One Euro フィルタ ===== */
-class OneEuro{
-  constructor(mc=1.2,beta=0.02,dc=1.0){ this.mc=mc; this.beta=beta; this.dc=dc; this.reset(); }
-  reset(){ this.x=null; this.dx=0; this.t=0; }
-  a(c,dt){ const r=2*Math.PI*c*dt; return r/(r+1); }
-  filter(v,t){
-    if(this.x===null){ this.x=v; this.t=t; return v; }
-    const dt=Math.max((t-this.t)/1000,1e-3); this.t=t;
-    const dv=(v-this.x)/dt;
-    this.dx += this.a(this.dc,dt)*(dv-this.dx);
-    this.x  += this.a(this.mc+this.beta*Math.abs(this.dx),dt)*(v-this.x);
-    return this.x;
-  }
-}
+const MIN_AMP_TO_TORSO = 0.15;   // ★修正②：0.08 から引き上げ
+const POSTURE_MAX      = 1.35;   // ★修正③：胴長 ÷ 肩幅
 
 /* ===== 回数カウンタ ===== */
 class RepCounter{
@@ -146,210 +80,103 @@ class RepCounter{
   }
   get amp(){ return this.v.length ? this.mx-this.mn : 0; }
   ampToTorso(){ return this.torso>0 ? this.amp/this.torso : 0; }
-  onFrame(visible, y, torsoLen, now, minAmp, extraOK){
-    if(!visible){ this.forget(); return false; }
+  onFrame(visible, y, torsoLen, now){
+    if(!visible){ this.forget(); return; }
     if(now-this.lastFrame>RESET_MS) this.forget();
     const el = this.lastFrame===0 ? 0 : Math.max(now-this.lastFrame,0);
     this.lastFrame=now;
     this.add(now,y);
-    const decayed = el<=0 ? this.torso : this.torso*Math.pow(0.5, el/TORSO_HALF_LIFE);
-    this.torso = Math.max(decayed, torsoLen);
+    this.torso = Math.max(el<=0 ? this.torso : this.torso*Math.pow(0.5, el/TORSO_HALF_LIFE), torsoLen);
     if(this.ampToTorso()>MAX_AMP_TORSO){
-      this.t=[this.t[this.t.length-1]]; this.v=[this.v[this.v.length-1]];
-      this.mn=this.mx=this.v[0];
+      this.t=[this.t[this.t.length-1]]; this.v=[this.v[this.v.length-1]]; this.mn=this.mx=this.v[0];
     }
-    if(this.ampToTorso()<minAmp) return false;
+    // ★修正①：下りたまま長時間戻らないなら、その下りを無効にする
+    if(this.isDown && now-this.enteredMs>MAX_HALF) this.isDown=false;
+    if(this.ampToTorso()<MIN_AMP_TO_TORSO) return;
     const span=this.amp, n = span<=0 ? 0 : (this.v[this.v.length-1]-this.mn)/span;
     if(n<EXIT){
-      if(!this.isDown) return false;
+      if(!this.isDown) return;
       this.isDown=false;
       const dt=now-this.enteredMs;
-      const ok = dt>=MIN_HALF && dt<=MAX_HALF && extraOK;
-      if(ok) this.count++;
-      return ok;
-    }
-    if(n>ENTER && !this.isDown){ this.isDown=true; this.enteredMs=now; }
-    return false;
+      if(dt>=MIN_HALF && dt<=MAX_HALF) this.count++;
+    }else if(n>ENTER && !this.isDown){ this.isDown=true; this.enteredMs=now; }
   }
 }
-
-/* ===== 32通りの組み合わせ ===== */
-/* bit 1:振幅  2:平滑  4:構え  8:距離  16:同期 */
-const COMBOS = [];
-for(let m=0;m<32;m++) COMBOS.push({ mask:m, c:new RepCounter(), miss:0, over:0, runs:0 });
-let sessions = 0, recording = false, log = [], lastLog = [];
+const counter = new RepCounter();
 
 /* ===== ランドマーク ===== */
 const LS=11,RS=12,LH=23,RH=24;
-const PAIRS=[[LS,RS],[LH,RH]];
 const BONES=[[11,12],[11,23],[12,24],[23,24],[11,13],[13,15],[12,14],[14,16],
              [23,25],[25,27],[24,26],[26,28]];
-const smY=new OneEuro(), smH=new OneEuro();
-let syncRaw=[], syncSm=[], prevRaw=null, prevRawH=null, prevSm=null, prevSmH=null;
+const usable = p => p && p.visibility>=0.5 && p.x>=0 && p.x<=1 && p.y>=0 && p.y<=1;
+// ★修正③：肩と腰だけ見る（膝・足首は見ない）
+const upperBodyOk = lm => [[LS,RS],[LH,RH]].every(([a,b]) => usable(lm[a])||usable(lm[b]));
 
-const bodyVisible = lm => PAIRS.every(([a,b]) => [a,b].some(i=>{
-  const p=lm[i]; return p && p.visibility>=0.5 && p.x>=0 && p.x<=1 && p.y>=0 && p.y<=1;
-}));
-function rate(buf){ return buf.length ? buf.filter(s=>s).length/buf.length : 1; }
-function push(buf, ok, now, times){
-  buf.push(ok); times.push(now);
-  while(times.length && now-times[0]>1500){ times.shift(); buf.shift(); }
-}
-let tRaw=[], tSm=[];
-
-/* ===== カメラ + 推論 ===== */
 let landmarker, video=$("vid"), ov=$("ov"), octx=ov.getContext("2d");
-let lastVideoTime=-1, frames=0, fpsT=0, fps=0;
+let lastVideoTime=-1, log=[];
 
 $("start").onclick = async () => {
   $("start").disabled=true;
   try{
     say("カメラを準備しています…");
-    const s = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:"user", width:{ideal:640}, height:{ideal:480} }, audio:false });
+    const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:640},height:{ideal:480}},audio:false});
     video.srcObject=s; await video.play();
-  }catch(e){ say(`カメラを開けませんでした（${e.name}）。`, true); return; }
+  }catch(e){ say(`カメラを開けませんでした（${e.name}）。`,true); return; }
   try{
     say("姿勢検出モデルを読み込んでいます…");
-    const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
-    landmarker = await PoseLandmarker.createFromOptions(vision,{
-      baseOptions:{ modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task", delegate:"GPU" },
+    const vision=await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+    landmarker=await PoseLandmarker.createFromOptions(vision,{
+      baseOptions:{modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",delegate:"GPU"},
       runningMode:"VIDEO", numPoses:1 });
-  }catch(e){ say(`モデルを読み込めませんでした（${e.message||e}）。`, true); return; }
+  }catch(e){ say(`モデルを読み込めませんでした（${e.message||e}）。`,true); return; }
   $("wrap").style.display="none"; $("app").style.display="block";
   requestAnimationFrame(loop);
 };
 
-$("toggle").onclick = () => $("hud").classList.toggle("collapsed");
-$("plus").onclick  = () => $("truth").value = (+$("truth").value)+1;
-$("minus").onclick = () => $("truth").value = Math.max(0,(+$("truth").value)-1);
-$("clear").onclick = () => { COMBOS.forEach(o=>{o.miss=0;o.over=0;o.runs=0;}); sessions=0; render(); };
-
-$("recBtn").onclick = () => {
-  if(!recording){
-    COMBOS.forEach(o=>o.c.hard()); log=[];
-    recording=true; $("recBtn").textContent="計測終了"; $("recBtn").classList.add("on");
-  }else{
-    const truth = +$("truth").value;
-    COMBOS.forEach(o=>{
-      const d = o.c.count - truth;
-      if(d<0) o.miss += -d; else o.over += d;
-      o.runs++;
-    });
-    sessions++; recording=false; lastLog=log.slice();
-    $("recBtn").textContent="計測開始"; $("recBtn").classList.remove("on");
-    $("hud").classList.remove("collapsed");
-    render(); drawPost();
-  }
-};
-
+$("reset").onclick = () => { counter.hard(); log=[]; $("count").textContent="0"; };
 $("copy").onclick = async () => {
-  const rows=[...COMBOS].map(o=>({...o,score:o.miss*3+o.over}))
-                        .sort((a,b)=>a.score-b.score||popcount(a.mask)-popcount(b.mask));
-  const nm=["振幅","平滑","構え","距離","同期"];
-  let t=`セッション ${sessions} 件\n\n| 順位 | 振幅 | 平滑 | 構え | 距離 | 同期 | スコア | 漏らし | 水増し |\n|--:|:-:|:-:|:-:|:-:|:-:|--:|--:|--:|\n`;
-  rows.forEach((o,i)=>{
-    const c=[1,2,4,8,16].map(b=>o.mask&b?"●":"○").join(" | ");
-    t+=`| ${i+1} | ${c} | ${o.score} | ${o.miss} | ${o.over} |\n`;
-  });
-  try{ await navigator.clipboard.writeText(t); $("copy").textContent="コピーしました"; }
-  catch{ const a=document.createElement("textarea"); a.value=t; document.body.appendChild(a);
-         a.select(); document.execCommand("copy"); a.remove(); $("copy").textContent="コピーしました"; }
-  setTimeout(()=>$("copy").textContent="結果をコピー",1500);
-};
-
-$("dl").onclick = async () => {
-  if(!lastLog.length) return;
-  const head="t_ms,shoulderY,hipY,torso,shoulderWidth,visible\n";
-  const body=lastLog.map(r=>`${r.t},${r.y.toFixed(1)},${r.h.toFixed(1)},${r.torso.toFixed(1)},${r.sw.toFixed(1)},${r.v}`).join("\n");
-  const txt=head+body;
+  if(!log.length) return;
+  const txt="t_ms,shoulderY,hipY,torso,shoulderWidth,visible\n"+
+    log.map(r=>`${r.t},${r.y.toFixed(1)},${r.h.toFixed(1)},${r.torso.toFixed(1)},${r.sw.toFixed(1)},${r.v}`).join("\n");
   try{ await navigator.clipboard.writeText(txt); }
   catch{ const a=document.createElement("textarea"); a.value=txt; document.body.appendChild(a);
          a.select(); document.execCommand("copy"); a.remove(); }
-  $("dl").textContent=`コピー（${lastLog.length}行）`;
-  setTimeout(()=>$("dl").textContent="記録をコピー",1800);
+  $("copy").textContent=`コピー（${log.length}行）`;
+  setTimeout(()=>$("copy").textContent="記録をコピー",1800);
 };
-
-/* 直近セッションを門番なしで再生し、信号と判定を描く */
-function drawPost(){
-  const cv=$("post"), ctx=cv.getContext("2d");
-  const w=cv.width=cv.clientWidth*2, h=cv.height=240;
-  ctx.clearRect(0,0,w,h);
-  if(lastLog.length<2){ $("postnote").textContent=""; return; }
-  const c=new RepCounter(), pts=[], marks=[];
-  for(const r of lastLog){
-    const hit=c.onFrame(r.v===1, r.y, r.torso, r.t, AMP_BASE, true);
-    const span=c.amp, n = span<=0 ? 0 : (c.v[c.v.length-1]-c.mn)/span;
-    pts.push({t:r.t, n: c.v.length?n:0, down:c.isDown});
-    if(hit) marks.push(r.t);
-  }
-  const t0=lastLog[0].t, t1=lastLog[lastLog.length-1].t, X=t=>(t-t0)/(t1-t0||1)*w;
-  [[ENTER,"#f0a72f"],[EXIT,"#3fc8c0"]].forEach(([v,col])=>{
-    ctx.strokeStyle=col; ctx.globalAlpha=.6; ctx.setLineDash([6,6]); ctx.lineWidth=2;
-    ctx.beginPath(); ctx.moveTo(0,h-v*h); ctx.lineTo(w,h-v*h); ctx.stroke();
-    ctx.setLineDash([]); ctx.globalAlpha=1;
-  });
-  ctx.strokeStyle="#e6edf3"; ctx.lineWidth=2; ctx.beginPath();
-  pts.forEach((p,i)=>{ const x=X(p.t), y=h-p.n*h; i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
-  ctx.stroke();
-  ctx.strokeStyle="#3fc8c0"; ctx.lineWidth=3;
-  marks.forEach(t=>{ ctx.beginPath(); ctx.moveTo(X(t),0); ctx.lineTo(X(t),h); ctx.stroke(); });
-  $("postnote").textContent =
-    `直近セッション：${((t1-t0)/1000).toFixed(1)}秒 / ${lastLog.length}フレーム / 縦線=数えた瞬間（${marks.length}回・門番なし）`;
-}
 
 function loop(){
   requestAnimationFrame(loop);
   if(video.readyState<2) return;
-  const W=video.videoWidth, H=video.videoHeight;
+  const W=video.videoWidth,H=video.videoHeight;
   if(ov.width!==W){ ov.width=W; ov.height=H; }
   if(video.currentTime===lastVideoTime) return;
   lastVideoTime=video.currentTime;
 
   const now=performance.now();
-  const res=landmarker.detectForVideo(video, now);
-  const lm=res.landmarks && res.landmarks[0];
+  const lm=(landmarker.detectForVideo(video,now).landmarks||[])[0];
   octx.clearRect(0,0,W,H);
-  if(!lm){ $("warn").style.display="block"; COMBOS.forEach(o=>o.c.forget()); return; }
+  if(!lm){ $("warn").style.display="block"; counter.forget(); return; }
   draw(lm,W,H);
 
   const px=i=>({x:lm[i].x*W,y:lm[i].y*H});
   const sM={x:(px(LS).x+px(RS).x)/2,y:(px(LS).y+px(RS).y)/2};
   const hM={x:(px(LH).x+px(RH).x)/2,y:(px(LH).y+px(RH).y)/2};
   const torso=Math.hypot(sM.x-hM.x,sM.y-hM.y);
-  const shoulderW=Math.hypot(px(LS).x-px(RS).x,px(LS).y-px(RS).y);
-  const visible=bodyVisible(lm);
-  $("warn").style.display=visible?"none":"block";
+  const sw=Math.hypot(px(LS).x-px(RS).x,px(LS).y-px(RS).y);
+  const ratio = sw>0 ? torso/sw : 99;
+  const visible = upperBodyOk(lm) && ratio<=POSTURE_MAX;
+  $("warn").style.display = visible ? "none" : "block";
 
-  const ySm=smY.filter(sM.y,now), hSm=smH.filter(hM.y,now);
-  if(prevRaw!==null){
-    push(syncRaw, Math.sign(sM.y-prevRaw)===Math.sign(hM.y-prevRawH) || Math.abs(sM.y-prevRaw)<0.3, now, tRaw);
-    push(syncSm,  Math.sign(ySm-prevSm)===Math.sign(hSm-prevSmH)   || Math.abs(ySm-prevSm)<0.3, now, tSm);
-  }
-  prevRaw=sM.y; prevRawH=hM.y; prevSm=ySm; prevSmH=hSm;
+  counter.onFrame(visible, sM.y, torso, now);
+  $("count").textContent = counter.count;
+  log.push({t:Math.round(now),y:sM.y,h:hM.y,torso,sw,v:visible?1:0});
+  if(log.length>4000) log.shift();
 
-  const ratio = shoulderW>0 ? torso/shoulderW : 99;
-  const sizeR = torso/H;
-  const gPost = ratio<=POSTURE_MAX, gSize = sizeR>=SIZE_MIN;
-  const okRaw = rate(syncRaw)>=SYNC_MIN, okSm = rate(syncSm)>=SYNC_MIN;
-
-  for(const o of COMBOS){
-    const m=o.mask, useSm=!!(m&2);
-    const vis = visible && (!(m&4)||gPost) && (!(m&8)||gSize);
-    o.c.onFrame(vis, useSm?ySm:sM.y, torso, now,
-                (m&1)?AMP_STRICT:AMP_BASE,
-                (m&16)? (useSm?okSm:okRaw) : true);
-  }
-
-  if(recording) log.push({ t:Math.round(now), y:sM.y, h:hM.y, torso, sw:shoulderW, v:visible?1:0 });
-
-  frames++; if(now-fpsT>1000){ fps=frames; frames=0; fpsT=now; }
-  const cls=b=>b?"ok":"ng";
   $("live").innerHTML =
-    `<span>振幅 <b>${COMBOS[0].c.ampToTorso().toFixed(2)}</b></span>`+
-    `<span>構え <b class="${cls(gPost)}">${ratio.toFixed(2)}</b></span>`+
-    `<span>距離 <b class="${cls(gSize)}">${(sizeR*100).toFixed(0)}%</b></span>`+
-    `<span>同期 <b class="${cls(okRaw)}">${(rate(syncRaw)*100).toFixed(0)}%</b></span>`+
-    `<span>${recording?"● 計測中 "+COMBOS[0].c.count+"回（門番なし）":fps+" fps"}</span>`;
+    `<span>構え <b class="${ratio<=POSTURE_MAX?"ok":"ng"}">${ratio.toFixed(2)}</b> ≦ ${POSTURE_MAX}</span>`+
+    `<span>振幅 <b class="${counter.ampToTorso()>=MIN_AMP_TO_TORSO?"ok":"ng"}">${counter.ampToTorso().toFixed(2)}</b> ≧ ${MIN_AMP_TO_TORSO}</span>`+
+    `<span>${counter.isDown?"下":"上"}</span>`;
 }
 
 function draw(lm,W,H){
@@ -359,25 +186,4 @@ function draw(lm,W,H){
   octx.fillStyle="#fff";
   lm.forEach(p=>{ octx.beginPath(); octx.arc(p.x*W,p.y*H,Math.max(2,W/240),0,7); octx.fill(); });
 }
-
-/* ===== 順位表 ===== */
-function dots(m){
-  return [1,2,4,8,16].map(b=>`<span class="${m&b?"on":"off"}">${m&b?"●":"○"}</span>`).join("");
-}
-function render(){
-  $("sessions").textContent = `セッション ${sessions} 件`;
-  if(sessions===0){ $("rank").innerHTML=""; return; }
-  const rows=[...COMBOS].map(o=>({...o, score:o.miss*3+o.over}))
-                        .sort((a,b)=>a.score-b.score || popcount(a.mask)-popcount(b.mask));
-  let html=`<tr><th style="text-align:left">門番</th><th>スコア</th><th>漏らし</th><th>水増し</th></tr>`;
-  rows.slice(0,10).forEach((o,i)=>{
-    const cl = i===0 ? "best" : (o.mask===0 ? "base" : "");
-    html+=`<tr class="${cl}"><td class="g">${dots(o.mask)}</td><td>${o.score}</td><td>${o.miss}</td><td>${o.over}</td></tr>`;
-  });
-  const base=rows.find(o=>o.mask===0);
-  if(!rows.slice(0,10).includes(base))
-    html+=`<tr class="base"><td class="g">${dots(0)}</td><td>${base.score}</td><td>${base.miss}</td><td>${base.over}</td></tr>`;
-  $("rank").innerHTML=html;
-}
-const popcount = m => [1,2,4,8,16].filter(b=>m&b).length;
 </script>
