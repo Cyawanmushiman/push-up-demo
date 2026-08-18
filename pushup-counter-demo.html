@@ -84,7 +84,9 @@ const say = (t,e) => { statusEl.textContent=t; statusEl.classList.toggle("err",!
 const WINDOW_MS=5000, ENTER=0.7, EXIT=0.3, MIN_HALF=250, MAX_HALF=5000,
       RESET_MS=1000, MAX_AMP_TORSO=1.5, TORSO_HALF_LIFE=3000;
 const MIN_AMP_TO_TORSO = 0.15;   // ★修正②：0.08 から引き上げ
-const POSTURE_MAX      = 1.35;   // ★修正③：胴長 ÷ 肩幅
+const POSTURE_MAX      = 1.05;   // ★A：胴長 ÷ 肩幅（1.35 から引き下げ）
+const FLEX_WINDOW_MS   = 3000;   // ★B：胴の伸び縮みを見る窓
+const FLEX_MIN         = 1.5;    // ★B：直近3秒の 胴長max ÷ 胴長min
 
 /* ===== 回数カウンタ ===== */
 class RepCounter{
@@ -134,6 +136,16 @@ const upperBodyOk = lm => [[LS,RS],[LH,RH]].every(([a,b]) => usable(lm[a])||usab
 
 let landmarker, video=$("vid"), ov=$("ov"), octx=ov.getContext("2d");
 let lastVideoTime=-1, log=[];
+
+// ★B：直近3秒の胴の長さを持って、伸び縮みの比を出す
+const flexT=[], flexV=[];
+function flexRatio(now, torsoLen){
+  flexT.push(now); flexV.push(torsoLen);
+  while(flexT.length && now-flexT[0]>FLEX_WINDOW_MS){ flexT.shift(); flexV.shift(); }
+  if(flexV.length<8) return 0;
+  const mn=Math.min(...flexV), mx=Math.max(...flexV);
+  return mn>0 ? mx/mn : 0;
+}
 
 $("start").onclick = async () => {
   $("start").disabled=true;
@@ -204,7 +216,8 @@ function loop(){
   const torso=Math.hypot(sM.x-hM.x,sM.y-hM.y);
   const sw=Math.hypot(px(LS).x-px(RS).x,px(LS).y-px(RS).y);
   const ratio = sw>0 ? torso/sw : 99;
-  const visible = upperBodyOk(lm) && ratio<=POSTURE_MAX;
+  const flex  = flexRatio(now, torso);
+  const visible = upperBodyOk(lm) && ratio<=POSTURE_MAX && flex>=FLEX_MIN;
   $("warn").style.display = visible ? "none" : "block";
 
   const before = counter.count;
@@ -215,6 +228,7 @@ function loop(){
 
   $("live").innerHTML =
     `<span>構え <b class="${ratio<=POSTURE_MAX?"ok":"ng"}">${ratio.toFixed(2)}</b> ≦ ${POSTURE_MAX}</span>`+
+    `<span>伸縮 <b class="${flex>=FLEX_MIN?"ok":"ng"}">${flex.toFixed(2)}</b> ≧ ${FLEX_MIN}</span>`+
     `<span>振幅 <b class="${counter.ampToTorso()>=MIN_AMP_TO_TORSO?"ok":"ng"}">${counter.ampToTorso().toFixed(2)}</b> ≧ ${MIN_AMP_TO_TORSO}</span>`+
     `<span>${counter.isDown?"下":"上"}</span>`;
 }
