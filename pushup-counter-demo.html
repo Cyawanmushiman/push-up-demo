@@ -91,6 +91,7 @@
       <div class="meta">
         <span id="sessions">セッション 0 件</span>
         <button id="clear">全消去</button>
+        <button id="copy">結果をコピー</button>
       </div>
       <table id="rank"></table>
       <div class="legend">門番の並び：振幅・平滑・構え・距離・同期／スコア＝数え漏らし×3＋水増し×1（小さいほど良い）</div>
@@ -235,6 +236,21 @@ $("recBtn").onclick = () => {
     $("hud").classList.remove("collapsed");
     render();
   }
+};
+
+$("copy").onclick = async () => {
+  const rows=[...COMBOS].map(o=>({...o,score:o.miss*3+o.over}))
+                        .sort((a,b)=>a.score-b.score||popcount(a.mask)-popcount(b.mask));
+  const nm=["振幅","平滑","構え","距離","同期"];
+  let t=`セッション ${sessions} 件\n\n| 順位 | 振幅 | 平滑 | 構え | 距離 | 同期 | スコア | 漏らし | 水増し |\n|--:|:-:|:-:|:-:|:-:|:-:|--:|--:|--:|\n`;
+  rows.forEach((o,i)=>{
+    const c=[1,2,4,8,16].map(b=>o.mask&b?"●":"○").join(" | ");
+    t+=`| ${i+1} | ${c} | ${o.score} | ${o.miss} | ${o.over} |\n`;
+  });
+  try{ await navigator.clipboard.writeText(t); $("copy").textContent="コピーしました"; }
+  catch{ const a=document.createElement("textarea"); a.value=t; document.body.appendChild(a);
+         a.select(); document.execCommand("copy"); a.remove(); $("copy").textContent="コピーしました"; }
+  setTimeout(()=>$("copy").textContent="結果をコピー",1500);
 };
 
 function loop(){
