@@ -173,12 +173,14 @@ $("recBtn").onclick = () => {
 };
 $("copy").onclick = async () => {
   if(!log.length) return;
-  const txt="t_ms,shoulderY,hipY,torso,shoulderWidth,visible\n"+
-    log.map(r=>`${r.t},${r.y.toFixed(1)},${r.h.toFixed(1)},${r.torso.toFixed(1)},${r.sw.toFixed(1)},${r.v}`).join("\n");
+  // 3フレームに1つに間引く（数えた瞬間の行は必ず残す）
+  const thin=log.filter((r,i)=> i%3===0 || r.c===1);
+  const txt="t_ms,shoulderY,hipY,torso,shoulderWidth,visible,counted\n"+
+    thin.map(r=>`${r.t},${r.y.toFixed(0)},${r.h.toFixed(0)},${r.torso.toFixed(0)},${r.sw.toFixed(0)},${r.v},${r.c}`).join("\n");
   try{ await navigator.clipboard.writeText(txt); }
   catch{ const a=document.createElement("textarea"); a.value=txt; document.body.appendChild(a);
          a.select(); document.execCommand("copy"); a.remove(); }
-  $("copy").textContent=`コピー（${log.length}行）`;
+  $("copy").textContent=`コピー（${thin.length}行）`;
   setTimeout(()=>$("copy").textContent="記録をコピー",1800);
 };
 
@@ -205,9 +207,10 @@ function loop(){
   const visible = upperBodyOk(lm) && ratio<=POSTURE_MAX;
   $("warn").style.display = visible ? "none" : "block";
 
+  const before = counter.count;
   counter.onFrame(visible, sM.y, torso, now);
   $("count").textContent = counter.count;
-  log.push({t:Math.round(now),y:sM.y,h:hM.y,torso,sw,v:visible?1:0});
+  log.push({t:Math.round(now),y:sM.y,h:hM.y,torso,sw,v:visible?1:0,c:counter.count>before?1:0});
   if(log.length>4000) log.shift();
 
   $("live").innerHTML =
