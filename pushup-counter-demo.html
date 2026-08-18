@@ -30,6 +30,17 @@
   .live{ width:100%; font:600 12px ui-monospace,monospace; color:var(--dim);
     display:flex; gap:12px; flex-wrap:wrap }
   .live .ok{ color:var(--new) } .live .ng{ color:var(--bad) }
+  .truth{ display:flex; align-items:center; gap:4px; background:rgba(255,255,255,.08);
+    border:1px solid var(--line); border-radius:8px; padding:3px 5px }
+  .truth button{ width:30px; height:30px; border-radius:6px; border:1px solid var(--line);
+    background:transparent; color:var(--text); font-size:17px; line-height:1 }
+  .truth input{ width:44px; background:transparent; border:0; color:#fff; text-align:center;
+    font:700 19px ui-monospace,monospace }
+  #recBtn{ border:0; border-radius:8px; padding:10px 16px; font-size:15px; font-weight:700;
+    background:var(--new); color:#06201f }
+  #recBtn.on{ background:#e5534b; color:#fff }
+  .result{ width:100%; font-size:14px; font-weight:700 }
+  .result.good{ color:var(--new) } .result.bad{ color:var(--bad) }
 </style>
 
 <div class="wrap" id="wrap">
@@ -46,10 +57,19 @@
   <div class="hud">
     <div class="num"><small>回数</small><span id="count">0</span></div>
     <div class="side">
+      <div class="truth">
+        <button id="minus">−</button>
+        <input id="truth" type="number" inputmode="numeric" value="6">
+        <button id="plus">＋</button>
+      </div>
+      <button id="recBtn">計測開始</button>
+    </div>
+    <div class="live" id="live"></div>
+    <div class="result" id="result"></div>
+    <div class="side" style="width:100%;margin:0">
       <button id="reset">リセット</button>
       <button id="copy">記録をコピー</button>
     </div>
-    <div class="live" id="live"></div>
   </div>
 </div>
 
@@ -133,7 +153,24 @@ $("start").onclick = async () => {
   requestAnimationFrame(loop);
 };
 
-$("reset").onclick = () => { counter.hard(); log=[]; $("count").textContent="0"; };
+$("reset").onclick = () => { counter.hard(); log=[]; $("count").textContent="0"; $("result").textContent=""; };
+$("plus").onclick  = () => $("truth").value = (+$("truth").value)+1;
+$("minus").onclick = () => $("truth").value = Math.max(0,(+$("truth").value)-1);
+
+let recording=false;
+$("recBtn").onclick = () => {
+  if(!recording){
+    counter.hard(); log=[]; $("count").textContent="0"; $("result").textContent="";
+    recording=true; $("recBtn").textContent="計測終了"; $("recBtn").classList.add("on");
+  }else{
+    recording=false; $("recBtn").textContent="計測開始"; $("recBtn").classList.remove("on");
+    const truth=+$("truth").value, got=counter.count, d=got-truth;
+    const el=$("result");
+    el.textContent = d===0 ? `正解 ${truth} / 数えた ${got} / ずれ 0 ✓`
+      : `正解 ${truth} / 数えた ${got} / ${d<0?`数え漏らし ${-d}`:`水増し ${d}`}`;
+    el.className = "result " + (d===0 ? "good" : "bad");
+  }
+};
 $("copy").onclick = async () => {
   if(!log.length) return;
   const txt="t_ms,shoulderY,hipY,torso,shoulderWidth,visible\n"+
