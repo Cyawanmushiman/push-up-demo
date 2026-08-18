@@ -103,7 +103,7 @@ class RepCounter{
   get amp(){ return this.v.length ? this.mx-this.mn : 0; }
   ampToTorso(){ return this.torso>0 ? this.amp/this.torso : 0; }
   onFrame(bodyOk, formOk, y, torsoLen, now){
-    if(!bodyOk){ this.forget(); return; }
+    if(!bodyOk || !formOk){ this.forget(); return; }
     if(now-this.lastFrame>RESET_MS) this.forget();
     const el = this.lastFrame===0 ? 0 : Math.max(now-this.lastFrame,0);
     this.lastFrame=now;
@@ -120,8 +120,7 @@ class RepCounter{
       if(!this.isDown) return;
       this.isDown=false;
       const dt=now-this.enteredMs;
-      // ★構え・伸縮は「数える瞬間」に見る（信号の履歴は消さない）
-      if(formOk && dt>=MIN_HALF && dt<=MAX_HALF) this.count++;
+      if(dt>=MIN_HALF && dt<=MAX_HALF) this.count++;
     }else if(n>ENTER && !this.isDown){ this.isDown=true; this.enteredMs=now; }
   }
 }
