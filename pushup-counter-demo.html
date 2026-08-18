@@ -92,7 +92,11 @@
         <span id="sessions">セッション 0 件</span>
         <button id="clear">全消去</button>
         <button id="copy">結果をコピー</button>
+        <button id="dl">記録をコピー</button>
       </div>
+      <canvas id="post" style="width:100%;height:120px;display:block;margin-top:8px;
+        background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:8px"></canvas>
+      <div class="legend" id="postnote"></div>
       <table id="rank"></table>
       <div class="legend">門番の並び：振幅・平滑・構え・距離・同期／スコア＝数え漏らし×3＋水増し×1（小さいほど良い）</div>
     </div>
@@ -173,7 +177,7 @@ class RepCounter{
 /* bit 1:振幅  2:平滑  4:構え  8:距離  16:同期 */
 const COMBOS = [];
 for(let m=0;m<32;m++) COMBOS.push({ mask:m, c:new RepCounter(), miss:0, over:0, runs:0 });
-let sessions = 0, recording = false;
+let sessions = 0, recording = false, log = [], lastLog = [];
 
 /* ===== ランドマーク ===== */
 const LS=11,RS=12,LH=23,RH=24;
@@ -222,7 +226,7 @@ $("clear").onclick = () => { COMBOS.forEach(o=>{o.miss=0;o.over=0;o.runs=0;}); s
 
 $("recBtn").onclick = () => {
   if(!recording){
-    COMBOS.forEach(o=>o.c.hard());
+    COMBOS.forEach(o=>o.c.hard()); log=[];
     recording=true; $("recBtn").textContent="計測終了"; $("recBtn").classList.add("on");
   }else{
     const truth = +$("truth").value;
@@ -231,10 +235,10 @@ $("recBtn").onclick = () => {
       if(d<0) o.miss += -d; else o.over += d;
       o.runs++;
     });
-    sessions++; recording=false;
+    sessions++; recording=false; lastLog=log.slice();
     $("recBtn").textContent="計測開始"; $("recBtn").classList.remove("on");
     $("hud").classList.remove("collapsed");
-    render();
+    render(); drawPost();
   }
 };
 
@@ -252,6 +256,46 @@ $("copy").onclick = async () => {
          a.select(); document.execCommand("copy"); a.remove(); $("copy").textContent="コピーしました"; }
   setTimeout(()=>$("copy").textContent="結果をコピー",1500);
 };
+
+$("dl").onclick = async () => {
+  if(!lastLog.length) return;
+  const head="t_ms,shoulderY,hipY,torso,shoulderWidth,visible\n";
+  const body=lastLog.map(r=>`${r.t},${r.y.toFixed(1)},${r.h.toFixed(1)},${r.torso.toFixed(1)},${r.sw.toFixed(1)},${r.v}`).join("\n");
+  const txt=head+body;
+  try{ await navigator.clipboard.writeText(txt); }
+  catch{ const a=document.createElement("textarea"); a.value=txt; document.body.appendChild(a);
+         a.select(); document.execCommand("copy"); a.remove(); }
+  $("dl").textContent=`コピー（${lastLog.length}行）`;
+  setTimeout(()=>$("dl").textContent="記録をコピー",1800);
+};
+
+/* 直近セッションを門番なしで再生し、信号と判定を描く */
+function drawPost(){
+  const cv=$("post"), ctx=cv.getContext("2d");
+  const w=cv.width=cv.clientWidth*2, h=cv.height=240;
+  ctx.clearRect(0,0,w,h);
+  if(lastLog.length<2){ $("postnote").textContent=""; return; }
+  const c=new RepCounter(), pts=[], marks=[];
+  for(const r of lastLog){
+    const hit=c.onFrame(r.v===1, r.y, r.torso, r.t, AMP_BASE, true);
+    const span=c.amp, n = span<=0 ? 0 : (c.v[c.v.length-1]-c.mn)/span;
+    pts.push({t:r.t, n: c.v.length?n:0, down:c.isDown});
+    if(hit) marks.push(r.t);
+  }
+  const t0=lastLog[0].t, t1=lastLog[lastLog.length-1].t, X=t=>(t-t0)/(t1-t0||1)*w;
+  [[ENTER,"#f0a72f"],[EXIT,"#3fc8c0"]].forEach(([v,col])=>{
+    ctx.strokeStyle=col; ctx.globalAlpha=.6; ctx.setLineDash([6,6]); ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(0,h-v*h); ctx.lineTo(w,h-v*h); ctx.stroke();
+    ctx.setLineDash([]); ctx.globalAlpha=1;
+  });
+  ctx.strokeStyle="#e6edf3"; ctx.lineWidth=2; ctx.beginPath();
+  pts.forEach((p,i)=>{ const x=X(p.t), y=h-p.n*h; i?ctx.lineTo(x,y):ctx.moveTo(x,y); });
+  ctx.stroke();
+  ctx.strokeStyle="#3fc8c0"; ctx.lineWidth=3;
+  marks.forEach(t=>{ ctx.beginPath(); ctx.moveTo(X(t),0); ctx.lineTo(X(t),h); ctx.stroke(); });
+  $("postnote").textContent =
+    `直近セッション：${((t1-t0)/1000).toFixed(1)}秒 / ${lastLog.length}フレーム / 縦線=数えた瞬間（${marks.length}回・門番なし）`;
+}
 
 function loop(){
   requestAnimationFrame(loop);
@@ -295,6 +339,8 @@ function loop(){
                 (m&1)?AMP_STRICT:AMP_BASE,
                 (m&16)? (useSm?okSm:okRaw) : true);
   }
+
+  if(recording) log.push({ t:Math.round(now), y:sM.y, h:hM.y, torso, sw:shoulderW, v:visible?1:0 });
 
   frames++; if(now-fpsT>1000){ fps=frames; frames=0; fpsT=now; }
   const cls=b=>b?"ok":"ng";
