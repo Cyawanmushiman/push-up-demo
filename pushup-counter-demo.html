@@ -1,94 +1,99 @@
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <style>
   :root{
-    --ink:#0e1116; --panel:#161b22; --line:#242c37; --text:#e6edf3; --dim:#8b98a5;
-    --now:#f0a72f;   /* 現行方式 */
-    --new:#3fc8c0;   /* 改善案 */
-    --bad:#e5534b;
+    --ink:#0e1116; --line:rgba(255,255,255,.14); --text:#e6edf3; --dim:#b6c2cf;
+    --now:#f0a72f; --new:#3fc8c0; --bad:#ff8a82;
+    --glass:rgba(14,17,22,.42);
   }
   *{box-sizing:border-box}
-  .wrap{
-    background:var(--ink); color:var(--text); padding:14px;
+  body{margin:0}
+  .wrap{ background:var(--ink); color:var(--text); padding:14px;
     font-family:-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
-    font-size:14px; line-height:1.6;
-  }
-  #app{ position:fixed; inset:0; z-index:9 }
-  #app .stage{ position:absolute; inset:0; aspect-ratio:auto; border:0; border-radius:0 }
-  .hud{
-    position:absolute; left:0; right:0; bottom:0; padding:8px 10px 10px;
-    max-height:62dvh; overflow:auto;
-    background:linear-gradient(to top, rgba(14,17,22,.96) 60%, rgba(14,17,22,0));
-  }
-  .hud .card, .hud canvas.trace, .hud label{ background:rgba(22,27,34,.85) }
-  .hud.collapsed .trace, .hud.collapsed .gates, .hud.collapsed .foot{ display:none }
-  #toggle{ position:absolute; top:10px; right:10px; z-index:11;
-           background:rgba(22,27,34,.85); color:var(--text);
-           border:1px solid var(--line); border-radius:8px; padding:8px 12px;
-           font-size:13px; cursor:pointer }
-  .status{
-    background:var(--panel); border:1px solid var(--line); border-radius:10px;
-    padding:10px 12px; margin-bottom:12px; font-size:13px; color:var(--dim);
-  }
+    font-size:14px; line-height:1.6 }
+  .status{ background:rgba(255,255,255,.06); border:1px solid var(--line);
+    border-radius:10px; padding:10px 12px; margin-bottom:12px; font-size:13px; color:var(--dim) }
   .status.err{ border-color:var(--bad); color:#ffb3ae }
-  button.go{
-    background:var(--new); color:#06201f; border:0; border-radius:8px;
-    padding:10px 18px; font-size:15px; font-weight:700; cursor:pointer;
-  }
-  button.go:disabled{ opacity:.4; cursor:default }
-  .stage{ position:relative; width:100%; aspect-ratio:4/3; background:#000;
-          border-radius:10px; overflow:hidden; border:1px solid var(--line) }
+  button.go{ background:var(--new); color:#06201f; border:0; border-radius:8px;
+    padding:10px 18px; font-size:15px; font-weight:700; cursor:pointer }
+  #app{ position:fixed; inset:0; z-index:9; display:none }
+  .stage{ position:absolute; inset:0; background:#000; overflow:hidden }
   video,canvas.ov{ position:absolute; inset:0; width:100%; height:100%;
-                   object-fit:cover; transform:scaleX(-1) }
-  .counts{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin:12px 0 }
-  .card{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px }
-  .card .lbl{ font-size:12px; color:var(--dim); letter-spacing:.04em }
-  .card .num{ font:700 44px/1.1 ui-monospace,SFMono-Regular,Menlo,monospace; margin-top:2px }
-  .card.now .num{ color:var(--now) } .card.new .num{ color:var(--new) }
-  .card .sub{ font-size:12px; color:var(--dim); margin-top:2px }
-  canvas.trace{ width:100%; height:90px; display:block; background:var(--panel);
-                border:1px solid var(--line); border-radius:10px }
-  .gates{ margin-top:12px; display:grid; gap:6px }
-  .gates label{ display:flex; align-items:center; gap:9px; background:var(--panel);
-                border:1px solid var(--line); border-radius:8px; padding:8px 11px; cursor:pointer }
-  .gates input{ accent-color:var(--new); width:16px; height:16px; flex:none }
-  .gates .g-name{ flex:1 }
-  .gates .thr{ width:90px; accent-color:var(--new); flex:none }
-  .gates .g-val{ font:600 12px ui-monospace,monospace; color:var(--dim);
-                 min-width:92px; text-align:right }
-  .gates .g-val.on{ color:var(--new) } .gates .g-val.off{ color:var(--bad) }
-  .foot{ display:flex; gap:8px; margin-top:12px; align-items:center }
-  button.min{ background:transparent; color:var(--dim); border:1px solid var(--line);
-              border-radius:8px; padding:7px 12px; cursor:pointer; font-size:13px }
-  .warn{ position:absolute; left:0; right:0; bottom:0; background:rgba(229,83,75,.9);
-         color:#fff; font-size:13px; padding:6px 10px; text-align:center }
+    object-fit:cover; transform:scaleX(-1) }
+  .warn{ position:absolute; left:0; right:0; top:0; background:rgba(229,83,75,.75);
+    color:#fff; font-size:13px; padding:5px 10px; text-align:center }
+  #toggle{ position:absolute; top:10px; right:10px; z-index:12; background:var(--glass);
+    -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+    color:var(--text); border:1px solid var(--line); border-radius:8px;
+    padding:8px 12px; font-size:13px }
+
+  .hud{ position:absolute; left:0; right:0; bottom:0; z-index:11;
+    max-height:68dvh; overflow:auto; padding:10px 10px calc(10px + env(safe-area-inset-bottom));
+    background:var(--glass); -webkit-backdrop-filter:blur(14px); backdrop-filter:blur(14px);
+    border-top:1px solid var(--line) }
+  .hud.collapsed .foldable{ display:none }
+
+  .live{ display:flex; gap:10px; flex-wrap:wrap; font:600 12px ui-monospace,Menlo,monospace;
+    color:var(--dim); margin-bottom:8px }
+  .live b{ color:#fff; font-weight:700 }
+  .live .ng{ color:var(--bad) } .live .ok{ color:var(--new) }
+
+  .rec{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px }
+  .rec .truth{ display:flex; align-items:center; gap:6px;
+    background:rgba(255,255,255,.08); border:1px solid var(--line); border-radius:8px; padding:4px 6px }
+  .rec .truth button{ width:30px; height:30px; border-radius:6px; border:1px solid var(--line);
+    background:transparent; color:var(--text); font-size:17px; line-height:1 }
+  .rec .truth input{ width:44px; background:transparent; border:0; color:#fff; text-align:center;
+    font:700 19px ui-monospace,monospace }
+  #recBtn{ flex:1; min-width:120px; border:0; border-radius:8px; padding:10px 14px;
+    font-size:15px; font-weight:700; background:var(--new); color:#06201f }
+  #recBtn.on{ background:#e5534b; color:#fff }
+  .meta{ font-size:12px; color:var(--dim); display:flex; gap:10px; align-items:center }
+  .meta button{ background:transparent; color:var(--dim); border:1px solid var(--line);
+    border-radius:7px; padding:5px 10px; font-size:12px }
+
+  table{ width:100%; border-collapse:collapse; font-size:12px; margin-top:8px }
+  th,td{ padding:6px 4px; text-align:right; border-bottom:1px solid rgba(255,255,255,.08) }
+  th{ color:var(--dim); font-weight:600; font-size:11px }
+  td.g{ text-align:left; font:600 14px ui-monospace,monospace; letter-spacing:2px }
+  tr.best td{ background:rgba(63,200,192,.14) }
+  tr.base td{ color:var(--now) }
+  .on{ color:var(--new) } .off{ color:rgba(255,255,255,.22) }
+  .legend{ font-size:11px; color:var(--dim); margin-top:6px }
 </style>
 
-<div class="wrap">
+<div class="wrap" id="wrap">
   <div class="status" id="status">カメラを使います。「開始」を押すとブラウザが許可を聞いてきます。</div>
   <div id="startbox"><button class="go" id="start">開始</button></div>
+</div>
 
-  <div id="app" style="display:none">
-    <div class="stage">
-      <video id="vid" playsinline muted></video>
-      <canvas class="ov" id="ov"></canvas>
-      <div class="warn" id="warn" style="display:none">全身が入っていません</div>
+<div id="app">
+  <div class="stage">
+    <video id="vid" playsinline muted></video>
+    <canvas class="ov" id="ov"></canvas>
+    <div class="warn" id="warn" style="display:none">上半身が入っていません</div>
+  </div>
+  <button id="toggle">数値</button>
+
+  <div class="hud" id="hud">
+    <div class="live" id="live"></div>
+
+    <div class="rec">
+      <div class="truth">
+        <button id="minus">−</button>
+        <input id="truth" type="number" inputmode="numeric" value="6">
+        <button id="plus">＋</button>
+      </div>
+      <button id="recBtn">計測開始</button>
     </div>
 
-    <button id="toggle">数値</button>
-    <div class="hud" id="hud">
-    <div class="counts">
-      <div class="card now"><div class="lbl">現行方式（門番なし）</div><div class="num" id="cNow">0</div><div class="sub" id="sNow">—</div></div>
-      <div class="card new"><div class="lbl">改善案（門番あり）</div><div class="num" id="cNew">0</div><div class="sub" id="sNew">—</div></div>
-    </div>
-
-    <canvas class="trace" id="trace"></canvas>
-
-    <div class="gates" id="gates"></div>
-
-    <div class="foot">
-      <button class="min" id="reset">数字をリセット</button>
-      <span class="g-val" id="fps"></span>
-    </div>
+    <div class="foldable">
+      <div class="meta">
+        <span id="sessions">セッション 0 件</span>
+        <button id="clear">全消去</button>
+      </div>
+      <table id="rank"></table>
+      <div class="legend">門番の並び：振幅・平滑・構え・距離・同期／スコア＝数え漏らし×3＋水増し×1（小さいほど良い）</div>
     </div>
   </div>
 </div>
@@ -101,242 +106,216 @@ const $ = id => document.getElementById(id);
 const statusEl = $("status");
 const say = (t, err) => { statusEl.textContent = t; statusEl.classList.toggle("err", !!err); };
 
-/* ---------- 門番（トグル） ---------- */
-const GATES = [
-  { id:"amp",     name:"生の振幅ゲート（胴長比 0.15 以上）", on:true },
-  { id:"smooth",  name:"平滑化（One Euro フィルタ）",        on:true },
-  { id:"posture", name:"構え判定（胴長÷肩幅）", on:true, thr:1.35, min:0.6, max:2.5 },
-  { id:"size",    name:"離れすぎ判定（胴長が画面の12%以上）", on:true },
-  { id:"sync",    name:"肩と腰の同期チェック（60%以上）",     on:true },
-];
-const gatesEl = $("gates");
-GATES.forEach(g => {
-  const l = document.createElement("label");
-  l.innerHTML = `<input type="checkbox" class="chk" ${g.on?"checked":""}>
-                 <span class="g-name">${g.name}</span>
-                 ${g.thr!==undefined ? `<input type="range" class="thr" min="${g.min}" max="${g.max}" step="0.05" value="${g.thr}">` : ""}
-                 <span class="g-val">—</span>`;
-  l.querySelector(".chk").onchange = e => { g.on = e.target.checked; };
-  const s = l.querySelector(".thr");
-  if(s) s.oninput = e => { g.thr = parseFloat(e.target.value); };
-  g.el = l.querySelector(".g-val");
-  gatesEl.appendChild(l);
-});
-const gate = id => GATES.find(g => g.id === id);
-
-/* ---------- One Euro フィルタ ---------- */
-class OneEuro {
-  constructor(minCutoff=1.2, beta=0.02, dCutoff=1.0){
-    this.mc=minCutoff; this.beta=beta; this.dc=dCutoff; this.x=null; this.dx=0; this.t=0;
-  }
-  a(cut, dt){ const r = 2*Math.PI*cut*dt; return r/(r+1); }
-  filter(v, t){
-    if(this.x===null){ this.x=v; this.t=t; return v; }
-    const dt = Math.max((t-this.t)/1000, 1e-3); this.t=t;
-    const dx = (v-this.x)/dt;
-    this.dx += this.a(this.dc,dt)*(dx-this.dx);
-    const cut = this.mc + this.beta*Math.abs(this.dx);
-    this.x += this.a(cut,dt)*(v-this.x);
-    return this.x;
-  }
-  reset(){ this.x=null; this.dx=0; }
-}
-
-/* ---------- 回数カウンタ（依頼書の実装をそのまま移植） ---------- */
+/* ===== 定数（依頼書の実装をそのまま） ===== */
 const WINDOW_MS=5000, ENTER=0.7, EXIT=0.3, MIN_HALF=250, MAX_HALF=5000,
       RESET_MS=1000, MAX_AMP_TORSO=1.5, TORSO_HALF_LIFE=3000;
+/* 門番のしきい値 */
+const AMP_STRICT=0.15, AMP_BASE=0.08, POSTURE_MAX=1.35, SIZE_MIN=0.12, SYNC_MIN=0.6;
 
-class RepCounter {
-  constructor(minAmp){ this.minAmp=minAmp; this.hard(); }
+/* ===== One Euro フィルタ ===== */
+class OneEuro{
+  constructor(mc=1.2,beta=0.02,dc=1.0){ this.mc=mc; this.beta=beta; this.dc=dc; this.reset(); }
+  reset(){ this.x=null; this.dx=0; this.t=0; }
+  a(c,dt){ const r=2*Math.PI*c*dt; return r/(r+1); }
+  filter(v,t){
+    if(this.x===null){ this.x=v; this.t=t; return v; }
+    const dt=Math.max((t-this.t)/1000,1e-3); this.t=t;
+    const dv=(v-this.x)/dt;
+    this.dx += this.a(this.dc,dt)*(dv-this.dx);
+    this.x  += this.a(this.mc+this.beta*Math.abs(this.dx),dt)*(v-this.x);
+    return this.x;
+  }
+}
+
+/* ===== 回数カウンタ ===== */
+class RepCounter{
+  constructor(){ this.hard(); }
   hard(){ this.count=0; this.torso=0; this.lastFrame=0; this.forget(); }
-  forget(){ this.t=[]; this.v=[]; this.isDown=false; this.enteredMs=0; }
+  forget(){ this.t=[]; this.v=[]; this.mn=0; this.mx=0; this.isDown=false; this.enteredMs=0; }
   add(now,val){
     this.t.push(now); this.v.push(val);
-    while(this.t.length && now-this.t[0] > WINDOW_MS){ this.t.shift(); this.v.shift(); }
+    while(this.t.length && now-this.t[0]>WINDOW_MS){ this.t.shift(); this.v.shift(); }
+    let mn=Infinity,mx=-Infinity;
+    for(const x of this.v){ if(x<mn)mn=x; if(x>mx)mx=x; }
+    this.mn=mn; this.mx=mx;
   }
-  get amp(){ return this.v.length ? Math.max(...this.v)-Math.min(...this.v) : 0; }
-  norm(){ const s=this.amp; return s<=0 ? 0 : (this.v[this.v.length-1]-Math.min(...this.v))/s; }
+  get amp(){ return this.v.length ? this.mx-this.mn : 0; }
   ampToTorso(){ return this.torso>0 ? this.amp/this.torso : 0; }
-
-  onFrame(f, now, extraOK){
-    if(!f.visible){ this.forget(); return false; }
-    if(now-this.lastFrame > RESET_MS) this.forget();
+  onFrame(visible, y, torsoLen, now, minAmp, extraOK){
+    if(!visible){ this.forget(); return false; }
+    if(now-this.lastFrame>RESET_MS) this.forget();
     const el = this.lastFrame===0 ? 0 : Math.max(now-this.lastFrame,0);
-    this.lastFrame = now;
-
-    this.add(now, f.y);
+    this.lastFrame=now;
+    this.add(now,y);
     const decayed = el<=0 ? this.torso : this.torso*Math.pow(0.5, el/TORSO_HALF_LIFE);
-    this.torso = Math.max(decayed, f.torsoLen);
-
-    if(this.ampToTorso() > MAX_AMP_TORSO){
+    this.torso = Math.max(decayed, torsoLen);
+    if(this.ampToTorso()>MAX_AMP_TORSO){
       this.t=[this.t[this.t.length-1]]; this.v=[this.v[this.v.length-1]];
+      this.mn=this.mx=this.v[0];
     }
-    if(this.ampToTorso() < this.minAmp) return false;
-    return this.advance(this.norm(), now, extraOK);
-  }
-  advance(n, now, extraOK){
-    if(n < EXIT){
+    if(this.ampToTorso()<minAmp) return false;
+    const span=this.amp, n = span<=0 ? 0 : (this.v[this.v.length-1]-this.mn)/span;
+    if(n<EXIT){
       if(!this.isDown) return false;
-      this.isDown = false;
-      const dt = now-this.enteredMs;
-      const ok = dt>=MIN_HALF && dt<=MAX_HALF && extraOK();
+      this.isDown=false;
+      const dt=now-this.enteredMs;
+      const ok = dt>=MIN_HALF && dt<=MAX_HALF && extraOK;
       if(ok) this.count++;
       return ok;
     }
-    if(n > ENTER && !this.isDown){ this.isDown=true; this.enteredMs=now; }
+    if(n>ENTER && !this.isDown){ this.isDown=true; this.enteredMs=now; }
     return false;
   }
 }
 
-const cNow = new RepCounter(0.08);           // 現行：胴長比 0.08、門番なし
-const cNew = new RepCounter(0.08);           // 改善：閾値は毎フレーム差し替える
+/* ===== 32通りの組み合わせ ===== */
+/* bit 1:振幅  2:平滑  4:構え  8:距離  16:同期 */
+const COMBOS = [];
+for(let m=0;m<32;m++) COMBOS.push({ mask:m, c:new RepCounter(), miss:0, over:0, runs:0 });
+let sessions = 0, recording = false;
 
-/* ---------- ランドマーク ---------- */
-const LS=11,RS=12,LH=23,RH=24,LK=25,RK=26,LA=27,RA=28;
-const PAIRS=[[LS,RS],[LH,RH]];   // 上半身だけ。膝・足首は見ない
+/* ===== ランドマーク ===== */
+const LS=11,RS=12,LH=23,RH=24;
+const PAIRS=[[LS,RS],[LH,RH]];
 const BONES=[[11,12],[11,23],[12,24],[23,24],[11,13],[13,15],[12,14],[14,16],
              [23,25],[25,27],[24,26],[26,28]];
+const smY=new OneEuro(), smH=new OneEuro();
+let syncRaw=[], syncSm=[], prevRaw=null, prevRawH=null, prevSm=null, prevSmH=null;
 
-const smY = new OneEuro(), smH = new OneEuro();
-let syncBuf=[], prevY=null, prevH=null;
-
-function bodyVisible(lm){
-  return PAIRS.every(([a,b]) => [a,b].some(i => {
-    const p = lm[i];
-    return p && p.visibility>=0.5 && p.x>=0 && p.x<=1 && p.y>=0 && p.y<=1;
-  }));
+const bodyVisible = lm => PAIRS.every(([a,b]) => [a,b].some(i=>{
+  const p=lm[i]; return p && p.visibility>=0.5 && p.x>=0 && p.x<=1 && p.y>=0 && p.y<=1;
+}));
+function rate(buf){ return buf.length ? buf.filter(s=>s).length/buf.length : 1; }
+function push(buf, ok, now, times){
+  buf.push(ok); times.push(now);
+  while(times.length && now-times[0]>1500){ times.shift(); buf.shift(); }
 }
+let tRaw=[], tSm=[];
 
-/* ---------- カメラ + 推論 ---------- */
+/* ===== カメラ + 推論 ===== */
 let landmarker, video=$("vid"), ov=$("ov"), octx=ov.getContext("2d");
-let trace=$("trace"), tctx=trace.getContext("2d"), hist=[];
-let lastVideoTime=-1, frames=0, fpsT=0;
+let lastVideoTime=-1, frames=0, fpsT=0, fps=0;
 
 $("start").onclick = async () => {
-  $("start").disabled = true;
+  $("start").disabled=true;
   try{
     say("カメラを準備しています…");
-    const stream = await navigator.mediaDevices.getUserMedia({ video:{ width:640, height:480 }, audio:false });
-    video.srcObject = stream; await video.play();
-  }catch(e){
-    say(`カメラを開けませんでした（${e.name}）。この画面の中ではカメラが使えない設定になっている可能性が高いです。ローカルで動かすHTMLをお渡しします。`, true);
-    return;
-  }
+    const s = await navigator.mediaDevices.getUserMedia({ video:{ facingMode:"user", width:{ideal:640}, height:{ideal:480} }, audio:false });
+    video.srcObject=s; await video.play();
+  }catch(e){ say(`カメラを開けませんでした（${e.name}）。`, true); return; }
   try{
-    say("姿勢検出モデルを読み込んでいます…（初回は数秒）");
-    const vision = await FilesetResolver.forVisionTasks(
-      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
-    landmarker = await PoseLandmarker.createFromOptions(vision, {
-      baseOptions:{
-        modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
-        delegate:"GPU"
-      },
-      runningMode:"VIDEO", numPoses:1
-    });
-  }catch(e){
-    say(`モデルを読み込めませんでした（${e.message||e}）。この画面の中では外部ファイルの取得がブロックされている可能性が高いです。ローカルで動かすHTMLをお渡しします。`, true);
-    return;
-  }
-  say("動いています。カメラの前で腕立ての動きをしたり、わざと体を揺らしたりして、2つの数字を見比べてください。");
-  $("startbox").style.display="none"; statusEl.style.display="none"; $("app").style.display="block";
-  $("toggle").onclick = () => $("hud").classList.toggle("collapsed");
+    say("姿勢検出モデルを読み込んでいます…");
+    const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/wasm");
+    landmarker = await PoseLandmarker.createFromOptions(vision,{
+      baseOptions:{ modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task", delegate:"GPU" },
+      runningMode:"VIDEO", numPoses:1 });
+  }catch(e){ say(`モデルを読み込めませんでした（${e.message||e}）。`, true); return; }
+  $("wrap").style.display="none"; $("app").style.display="block";
   requestAnimationFrame(loop);
 };
 
-$("reset").onclick = () => { cNow.hard(); cNew.hard(); hist=[]; smY.reset(); smH.reset(); syncBuf=[]; };
+$("toggle").onclick = () => $("hud").classList.toggle("collapsed");
+$("plus").onclick  = () => $("truth").value = (+$("truth").value)+1;
+$("minus").onclick = () => $("truth").value = Math.max(0,(+$("truth").value)-1);
+$("clear").onclick = () => { COMBOS.forEach(o=>{o.miss=0;o.over=0;o.runs=0;}); sessions=0; render(); };
+
+$("recBtn").onclick = () => {
+  if(!recording){
+    COMBOS.forEach(o=>o.c.hard());
+    recording=true; $("recBtn").textContent="計測終了"; $("recBtn").classList.add("on");
+  }else{
+    const truth = +$("truth").value;
+    COMBOS.forEach(o=>{
+      const d = o.c.count - truth;
+      if(d<0) o.miss += -d; else o.over += d;
+      o.runs++;
+    });
+    sessions++; recording=false;
+    $("recBtn").textContent="計測開始"; $("recBtn").classList.remove("on");
+    $("hud").classList.remove("collapsed");
+    render();
+  }
+};
 
 function loop(){
   requestAnimationFrame(loop);
-  if(video.readyState < 2) return;
+  if(video.readyState<2) return;
   const W=video.videoWidth, H=video.videoHeight;
   if(ov.width!==W){ ov.width=W; ov.height=H; }
-  if(video.currentTime === lastVideoTime) return;
-  lastVideoTime = video.currentTime;
+  if(video.currentTime===lastVideoTime) return;
+  lastVideoTime=video.currentTime;
 
-  const now = performance.now();
-  const res = landmarker.detectForVideo(video, now);
-  const lm = res.landmarks && res.landmarks[0];
-
+  const now=performance.now();
+  const res=landmarker.detectForVideo(video, now);
+  const lm=res.landmarks && res.landmarks[0];
   octx.clearRect(0,0,W,H);
-  if(!lm){ $("warn").style.display="block"; cNow.forget(); cNew.forget(); return; }
+  if(!lm){ $("warn").style.display="block"; COMBOS.forEach(o=>o.c.forget()); return; }
+  draw(lm,W,H);
 
-  drawSkeleton(lm, W, H);
+  const px=i=>({x:lm[i].x*W,y:lm[i].y*H});
+  const sM={x:(px(LS).x+px(RS).x)/2,y:(px(LS).y+px(RS).y)/2};
+  const hM={x:(px(LH).x+px(RH).x)/2,y:(px(LH).y+px(RH).y)/2};
+  const torso=Math.hypot(sM.x-hM.x,sM.y-hM.y);
+  const shoulderW=Math.hypot(px(LS).x-px(RS).x,px(LS).y-px(RS).y);
+  const visible=bodyVisible(lm);
+  $("warn").style.display=visible?"none":"block";
 
-  // --- 特徴量（ピクセル座標） ---
-  const px = i => ({ x:lm[i].x*W, y:lm[i].y*H });
-  const sMid = { x:(px(LS).x+px(RS).x)/2, y:(px(LS).y+px(RS).y)/2 };
-  const hMid = { x:(px(LH).x+px(RH).x)/2, y:(px(LH).y+px(RH).y)/2 };
-  const torsoLen = Math.hypot(sMid.x-hMid.x, sMid.y-hMid.y);
-  const shoulderW = Math.hypot(px(LS).x-px(RS).x, px(LS).y-px(RS).y);
-  const visible = bodyVisible(lm);
-  $("warn").style.display = visible ? "none" : "block";
-
-  // --- 平滑化 ---
-  const ySm = smY.filter(sMid.y, now), hSm = smH.filter(hMid.y, now);
-  const useSm = gate("smooth").on;
-  const yFor = useSm ? ySm : sMid.y, hFor = useSm ? hSm : hMid.y;
-
-  // --- 肩と腰の同期 ---
-  if(prevY!==null){
-    syncBuf.push({ t:now, ok: Math.sign(yFor-prevY) === Math.sign(hFor-prevH) && Math.abs(yFor-prevY)>0.3 });
-    while(syncBuf.length && now-syncBuf[0].t>1500) syncBuf.shift();
+  const ySm=smY.filter(sM.y,now), hSm=smH.filter(hM.y,now);
+  if(prevRaw!==null){
+    push(syncRaw, Math.sign(sM.y-prevRaw)===Math.sign(hM.y-prevRawH) || Math.abs(sM.y-prevRaw)<0.3, now, tRaw);
+    push(syncSm,  Math.sign(ySm-prevSm)===Math.sign(hSm-prevSmH)   || Math.abs(ySm-prevSm)<0.3, now, tSm);
   }
-  prevY=yFor; prevH=hFor;
-  const moved = syncBuf.filter(s=>s.ok!==null);
-  const syncRate = moved.length ? moved.filter(s=>s.ok).length/moved.length : 1;
+  prevRaw=sM.y; prevRawH=hM.y; prevSm=ySm; prevSmH=hSm;
 
-  // --- 門番の判定 ---
-  const ratio  = shoulderW>0 ? torsoLen/shoulderW : 99;
-  const sizeR  = torsoLen/H;
-  const gAmp   = !gate("amp").on;                       // 振幅は counter 側の閾値で効かせる
-  const gPost  = !gate("posture").on || ratio <= gate("posture").thr;
-  const gSize  = !gate("size").on    || sizeR >= 0.12;
-  const gSync  = !gate("sync").on    || syncRate >= 0.6;
+  const ratio = shoulderW>0 ? torso/shoulderW : 99;
+  const sizeR = torso/H;
+  const gPost = ratio<=POSTURE_MAX, gSize = sizeR>=SIZE_MIN;
+  const okRaw = rate(syncRaw)>=SYNC_MIN, okSm = rate(syncSm)>=SYNC_MIN;
 
-  gate("amp").el.textContent     = cNew.ampToTorso().toFixed(2);
-  gate("smooth").el.textContent  = useSm ? "ON" : "OFF";
-  gate("posture").el.textContent = `${ratio.toFixed(2)} ≦ ${gate("posture").thr.toFixed(2)}`;
-  gate("size").el.textContent    = (sizeR*100).toFixed(0)+"%";
-  gate("sync").el.textContent    = (syncRate*100).toFixed(0)+"%";
-  setTone(gate("posture").el, gPost); setTone(gate("size").el, gSize); setTone(gate("sync").el, gSync);
+  for(const o of COMBOS){
+    const m=o.mask, useSm=!!(m&2);
+    const vis = visible && (!(m&4)||gPost) && (!(m&8)||gSize);
+    o.c.onFrame(vis, useSm?ySm:sM.y, torso, now,
+                (m&1)?AMP_STRICT:AMP_BASE,
+                (m&16)? (useSm?okSm:okRaw) : true);
+  }
 
-  // --- 2つのカウンタを同じフレームで回す ---
-  cNow.onFrame({ visible, y:sMid.y, torsoLen }, now, () => true);
-  cNew.minAmp = gate("amp").on ? 0.15 : 0.08;
-  cNew.onFrame({ visible: visible && gPost && gSize, y:yFor, torsoLen }, now, () => gSync);
-
-  $("cNow").textContent = cNow.count;
-  $("cNew").textContent = cNew.count;
-  $("sNow").textContent = `振幅 ${cNow.ampToTorso().toFixed(2)} / ${cNow.isDown?"下":"上"}`;
-  $("sNew").textContent = `振幅 ${cNew.ampToTorso().toFixed(2)} / ${cNew.isDown?"下":"上"}`;
-
-  hist.push(cNow.norm()); if(hist.length>240) hist.shift();
-  drawTrace();
-
-  frames++; if(now-fpsT>1000){ $("fps").textContent = frames+" fps"; frames=0; fpsT=now; }
+  frames++; if(now-fpsT>1000){ fps=frames; frames=0; fpsT=now; }
+  const cls=b=>b?"ok":"ng";
+  $("live").innerHTML =
+    `<span>振幅 <b>${COMBOS[0].c.ampToTorso().toFixed(2)}</b></span>`+
+    `<span>構え <b class="${cls(gPost)}">${ratio.toFixed(2)}</b></span>`+
+    `<span>距離 <b class="${cls(gSize)}">${(sizeR*100).toFixed(0)}%</b></span>`+
+    `<span>同期 <b class="${cls(okRaw)}">${(rate(syncRaw)*100).toFixed(0)}%</b></span>`+
+    `<span>${recording?"● 計測中 "+COMBOS[0].c.count+"回（門番なし）":fps+" fps"}</span>`;
 }
 
-function setTone(el, ok){ el.classList.toggle("on", ok); el.classList.toggle("off", !ok); }
-
-function drawSkeleton(lm, W, H){
+function draw(lm,W,H){
   octx.strokeStyle="rgba(63,200,192,.85)"; octx.lineWidth=Math.max(2,W/320);
-  BONES.forEach(([a,b])=>{
-    octx.beginPath(); octx.moveTo(lm[a].x*W, lm[a].y*H); octx.lineTo(lm[b].x*W, lm[b].y*H); octx.stroke();
-  });
+  BONES.forEach(([a,b])=>{ octx.beginPath();
+    octx.moveTo(lm[a].x*W,lm[a].y*H); octx.lineTo(lm[b].x*W,lm[b].y*H); octx.stroke(); });
   octx.fillStyle="#fff";
   lm.forEach(p=>{ octx.beginPath(); octx.arc(p.x*W,p.y*H,Math.max(2,W/240),0,7); octx.fill(); });
 }
 
-function drawTrace(){
-  const w=trace.width=trace.clientWidth, h=trace.height=90;
-  tctx.clearRect(0,0,w,h);
-  [[ENTER,"#f0a72f"],[EXIT,"#3fc8c0"]].forEach(([v,c])=>{
-    const y=h-v*h; tctx.strokeStyle=c; tctx.setLineDash([4,4]); tctx.globalAlpha=.5;
-    tctx.beginPath(); tctx.moveTo(0,y); tctx.lineTo(w,y); tctx.stroke();
-    tctx.setLineDash([]); tctx.globalAlpha=1;
-  });
-  tctx.strokeStyle="#e6edf3"; tctx.lineWidth=1.5; tctx.beginPath();
-  hist.forEach((v,i)=>{ const x=i/240*w, y=h-v*h; i?tctx.lineTo(x,y):tctx.moveTo(x,y); });
-  tctx.stroke();
+/* ===== 順位表 ===== */
+function dots(m){
+  return [1,2,4,8,16].map(b=>`<span class="${m&b?"on":"off"}">${m&b?"●":"○"}</span>`).join("");
 }
+function render(){
+  $("sessions").textContent = `セッション ${sessions} 件`;
+  if(sessions===0){ $("rank").innerHTML=""; return; }
+  const rows=[...COMBOS].map(o=>({...o, score:o.miss*3+o.over}))
+                        .sort((a,b)=>a.score-b.score || popcount(a.mask)-popcount(b.mask));
+  let html=`<tr><th style="text-align:left">門番</th><th>スコア</th><th>漏らし</th><th>水増し</th></tr>`;
+  rows.slice(0,10).forEach((o,i)=>{
+    const cl = i===0 ? "best" : (o.mask===0 ? "base" : "");
+    html+=`<tr class="${cl}"><td class="g">${dots(o.mask)}</td><td>${o.score}</td><td>${o.miss}</td><td>${o.over}</td></tr>`;
+  });
+  const base=rows.find(o=>o.mask===0);
+  if(!rows.slice(0,10).includes(base))
+    html+=`<tr class="base"><td class="g">${dots(0)}</td><td>${base.score}</td><td>${base.miss}</td><td>${base.over}</td></tr>`;
+  $("rank").innerHTML=html;
+}
+const popcount = m => [1,2,4,8,16].filter(b=>m&b).length;
 </script>
