@@ -102,8 +102,8 @@ class RepCounter{
   }
   get amp(){ return this.v.length ? this.mx-this.mn : 0; }
   ampToTorso(){ return this.torso>0 ? this.amp/this.torso : 0; }
-  onFrame(visible, y, torsoLen, now){
-    if(!visible){ this.forget(); return; }
+  onFrame(bodyOk, formOk, y, torsoLen, now){
+    if(!bodyOk){ this.forget(); return; }
     if(now-this.lastFrame>RESET_MS) this.forget();
     const el = this.lastFrame===0 ? 0 : Math.max(now-this.lastFrame,0);
     this.lastFrame=now;
@@ -120,7 +120,8 @@ class RepCounter{
       if(!this.isDown) return;
       this.isDown=false;
       const dt=now-this.enteredMs;
-      if(dt>=MIN_HALF && dt<=MAX_HALF) this.count++;
+      // ★構え・伸縮は「数える瞬間」に見る（信号の履歴は消さない）
+      if(formOk && dt>=MIN_HALF && dt<=MAX_HALF) this.count++;
     }else if(n>ENTER && !this.isDown){ this.isDown=true; this.enteredMs=now; }
   }
 }
@@ -142,7 +143,7 @@ const flexT=[], flexV=[];
 function flexRatio(now, torsoLen){
   flexT.push(now); flexV.push(torsoLen);
   while(flexT.length && now-flexT[0]>FLEX_WINDOW_MS){ flexT.shift(); flexV.shift(); }
-  if(flexV.length<8) return 0;
+  if(flexV.length<5) return 0;
   const mn=Math.min(...flexV), mx=Math.max(...flexV);
   return mn>0 ? mx/mn : 0;
 }
@@ -217,13 +218,14 @@ function loop(){
   const sw=Math.hypot(px(LS).x-px(RS).x,px(LS).y-px(RS).y);
   const ratio = sw>0 ? torso/sw : 99;
   const flex  = flexRatio(now, torso);
-  const visible = upperBodyOk(lm) && ratio<=POSTURE_MAX && flex>=FLEX_MIN;
-  $("warn").style.display = visible ? "none" : "block";
+  const bodyOk = upperBodyOk(lm);
+  const formOk = ratio<=POSTURE_MAX && flex>=FLEX_MIN;
+  $("warn").style.display = (bodyOk && formOk) ? "none" : "block";
 
   const before = counter.count;
-  counter.onFrame(visible, sM.y, torso, now);
+  counter.onFrame(bodyOk, formOk, sM.y, torso, now);
   $("count").textContent = counter.count;
-  log.push({t:Math.round(now),y:sM.y,h:hM.y,torso,sw,v:visible?1:0,c:counter.count>before?1:0});
+  log.push({t:Math.round(now),y:sM.y,h:hM.y,torso,sw,v:(bodyOk&&formOk)?1:0,c:counter.count>before?1:0});
   if(log.length>4000) log.shift();
 
   $("live").innerHTML =
