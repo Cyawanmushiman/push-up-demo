@@ -102,8 +102,9 @@ class RepCounter{
   }
   get amp(){ return this.v.length ? this.mx-this.mn : 0; }
   ampToTorso(){ return this.torso>0 ? this.amp/this.torso : 0; }
-  onFrame(bodyOk, formOk, y, torsoLen, now){
-    if(!bodyOk || !formOk){ this.forget(); return; }
+  // ★修正⑤：ゲートは bodyOk と postureOk のみ。flexOk はカウント成立の瞬間だけ見る
+  onFrame(bodyOk, postureOk, flexOk, y, torsoLen, now){
+    if(!bodyOk || !postureOk){ this.forget(); return; }
     if(now-this.lastFrame>RESET_MS) this.forget();
     const el = this.lastFrame===0 ? 0 : Math.max(now-this.lastFrame,0);
     this.lastFrame=now;
@@ -120,7 +121,8 @@ class RepCounter{
       if(!this.isDown) return;
       this.isDown=false;
       const dt=now-this.enteredMs;
-      if(dt>=MIN_HALF && dt<=MAX_HALF) this.count++;
+      // ★修正⑤：ここで初めて伸縮を要求する（揺れだけでは通らない）
+      if(dt>=MIN_HALF && dt<=MAX_HALF && flexOk) this.count++;
     }else if(n>ENTER && !this.isDown){ this.isDown=true; this.enteredMs=now; }
   }
 }
@@ -187,8 +189,8 @@ $("copy").onclick = async () => {
   if(!log.length) return;
   // 3フレームに1つに間引く（数えた瞬間の行は必ず残す）
   const thin=log.filter((r,i)=> i%3===0 || r.c===1);
-  const txt="t_ms,shoulderY,hipY,torso,shoulderWidth,visible,counted\n"+
-    thin.map(r=>`${r.t},${r.y.toFixed(0)},${r.h.toFixed(0)},${r.torso.toFixed(0)},${r.sw.toFixed(0)},${r.v},${r.c}`).join("\n");
+  const txt="t_ms,shoulderY,hipY,torso,shoulderWidth,posture,flex,counted\n"+
+    thin.map(r=>`${r.t},${r.y.toFixed(0)},${r.h.toFixed(0)},${r.torso.toFixed(0)},${r.sw.toFixed(0)},${r.p},${r.f},${r.c}`).join("\n");
   try{ await navigator.clipboard.writeText(txt); }
   catch{ const a=document.createElement("textarea"); a.value=txt; document.body.appendChild(a);
          a.select(); document.execCommand("copy"); a.remove(); }
@@ -217,21 +219,22 @@ function loop(){
   const sw=Math.hypot(px(LS).x-px(RS).x,px(LS).y-px(RS).y);
   const ratio = sw>0 ? torso/sw : 99;
   const flex  = flexRatio(now, torso);
-  const bodyOk = upperBodyOk(lm);
-  // ★修正④：アラートは構え(ratio)だけで判定。伸縮(flex)はカウント条件にだけ使う
+  const bodyOk   = upperBodyOk(lm);
+  // ★修正④：アラートは構え(ratio)だけで判定
   const postureOk = ratio<=POSTURE_MAX;
-  const formOk = postureOk && flex>=FLEX_MIN;
+  const flexOk    = flex>=FLEX_MIN;
   $("warn").style.display = (bodyOk && postureOk) ? "none" : "block";
 
   const before = counter.count;
-  counter.onFrame(bodyOk, formOk, sM.y, torso, now);
+  counter.onFrame(bodyOk, postureOk, flexOk, sM.y, torso, now);
   $("count").textContent = counter.count;
-  log.push({t:Math.round(now),y:sM.y,h:hM.y,torso,sw,v:(bodyOk&&formOk)?1:0,c:counter.count>before?1:0});
+  log.push({t:Math.round(now),y:sM.y,h:hM.y,torso,sw,
+            p:(bodyOk&&postureOk)?1:0, f:flexOk?1:0, c:counter.count>before?1:0});
   if(log.length>4000) log.shift();
 
   $("live").innerHTML =
-    `<span>構え <b class="${ratio<=POSTURE_MAX?"ok":"ng"}">${ratio.toFixed(2)}</b> ≦ ${POSTURE_MAX}</span>`+
-    `<span>伸縮 <b class="${flex>=FLEX_MIN?"ok":"ng"}">${flex.toFixed(2)}</b> ≧ ${FLEX_MIN}</span>`+
+    `<span>構え <b class="${postureOk?"ok":"ng"}">${ratio.toFixed(2)}</b> ≦ ${POSTURE_MAX}</span>`+
+    `<span>伸縮 <b class="${flexOk?"ok":"ng"}">${flex.toFixed(2)}</b> ≧ ${FLEX_MIN}</span>`+
     `<span>振幅 <b class="${counter.ampToTorso()>=MIN_AMP_TO_TORSO?"ok":"ng"}">${counter.ampToTorso().toFixed(2)}</b> ≧ ${MIN_AMP_TO_TORSO}</span>`+
     `<span>${counter.isDown?"下":"上"}</span>`;
 }
