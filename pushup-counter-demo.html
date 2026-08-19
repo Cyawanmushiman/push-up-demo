@@ -218,8 +218,10 @@ function loop(){
   const ratio = sw>0 ? torso/sw : 99;
   const flex  = flexRatio(now, torso);
   const bodyOk = upperBodyOk(lm);
-  const formOk = ratio<=POSTURE_MAX && flex>=FLEX_MIN;
-  $("warn").style.display = (bodyOk && formOk) ? "none" : "block";
+  // ★修正④：アラートは構え(ratio)だけで判定。伸縮(flex)はカウント条件にだけ使う
+  const postureOk = ratio<=POSTURE_MAX;
+  const formOk = postureOk && flex>=FLEX_MIN;
+  $("warn").style.display = (bodyOk && postureOk) ? "none" : "block";
 
   const before = counter.count;
   counter.onFrame(bodyOk, formOk, sM.y, torso, now);
